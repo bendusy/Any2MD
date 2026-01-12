@@ -42,6 +42,7 @@ jobs:
           pyinstaller --name Any2MD \
             --onefile \
             --windowed \
+            --icon=docs/icon.png \
             --add-data "README.md:." \
             any2md/__main__.py
 
@@ -51,6 +52,7 @@ jobs:
           pyinstaller --name Any2MD `
             --onefile `
             --windowed `
+            --icon=docs/icon.ico `
             --add-data "README.md;." `
             any2md/__main__.py
 
