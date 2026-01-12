@@ -32,20 +32,10 @@ class Any2MDConverter:
         ".txt",
         ".md",
         ".rtf",
-        ".jpg",
-        ".jpeg",
-        ".png",
-        ".gif",
-        ".bmp",
-        ".webp",
-        ".mp3",
-        ".wav",
-        ".m4a",
-        ".ogg",
         ".zip",
     }
 
-    def __init__(self, enable_plugins: bool = True):
+    def __init__(self, enable_plugins: bool = False):
         self.md = MarkItDown(enable_plugins=enable_plugins)
 
     def can_convert(self, file_path: Path) -> bool:

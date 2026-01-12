@@ -11,6 +11,19 @@ app = typer.Typer(name="any2md", help="批量转换文档为 Markdown")
 console = Console()
 
 
+def _run_gui() -> None:
+    try:
+        from .gui import run_gui
+
+        run_gui()
+    except ImportError as e:
+        console.print(
+            "[red]GUI 依赖未安装[/red]：请使用 `pip install 'any2md[gui]'` 后再运行 GUI。\n"
+            f"[dim]{e}[/dim]"
+        )
+        raise typer.Exit(code=1)
+
+
 @app.command()
 def convert(
     input_path: Path = typer.Argument(..., help="输入文件/文件夹/ZIP路径"),
@@ -49,17 +62,22 @@ def convert(
 
 @app.command()
 def gui():
-    from .gui import run_gui
-
-    run_gui()
+    _run_gui()
 
 
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context):
     if ctx.invoked_subcommand is None:
-        from .gui import run_gui
+        # For non-technical users: if GUI deps are installed, launch GUI by default.
+        # Otherwise show CLI help (so `any2md` remains usable without PyQt6).
+        import importlib.util
 
-        run_gui()
+        if importlib.util.find_spec("PyQt6") is not None:
+            _run_gui()
+            return
+
+        typer.echo(ctx.get_help())
+        raise typer.Exit(code=0)
 
 
 if __name__ == "__main__":

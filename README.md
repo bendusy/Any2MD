@@ -24,8 +24,6 @@ Any2MD 是一个基于 [Microsoft MarkItDown](https://github.com/microsoft/marki
 | PowerPoint | .pptx 演示文稿 |
 | Excel | .xlsx / .xls 表格 |
 | HTML | 网页文件 |
-| 图片 | 支持 EXIF 和 OCR |
-| 音频 | 语音转文字（需配置） |
 | ZIP | 自动解压处理 |
 
 ## 快速开始
@@ -35,7 +33,15 @@ Any2MD 是一个基于 [Microsoft MarkItDown](https://github.com/microsoft/marki
 ```bash
 git clone https://github.com/dustbinchen/Any2MD.git
 cd Any2MD
-pip install -r requirements.txt
+
+# CLI（不含 GUI，体积更小）
+pip install -e .
+
+# GUI
+pip install -e ".[gui]"
+
+# 全功能（未来要 OCR/音频等再装这个，会显著变大）
+pip install -e ".[full]"
 ```
 
 ### 图形界面
@@ -99,7 +105,8 @@ Any2MD/
 │   ├── __init__.py
 │   ├── __main__.py      # 入口
 │   ├── cli.py           # 命令行接口
-│   ├── gui.py           # PyQt6 图形界面
+│   ├── gui.py           # GUI 启动器（可选依赖）
+│   ├── gui_app.py       # PyQt6 图形界面
 │   ├── converter.py     # 核心转换引擎（封装 MarkItDown）
 │   ├── unzipper.py      # ZIP 解压
 │   └── cleaner.py       # 文件名清理
@@ -111,8 +118,8 @@ Any2MD/
 ## 依赖
 
 - Python >= 3.10
-- markitdown[all] - Microsoft MarkItDown
-- PyQt6 - 图形界面
+- markitdown - Microsoft MarkItDown（精简安装，暂不包含 OCR/音频等重依赖）
+- PyQt6 - 图形界面（可选：`pip install 'any2md[gui]'`）
 - typer - 命令行接口
 
 ## 许可证

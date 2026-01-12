@@ -13,8 +13,6 @@ class TestAny2MDConverter:
         assert converter.can_convert(Path("test.html"))
         assert converter.can_convert(Path("test.xlsx"))
         assert converter.can_convert(Path("test.pptx"))
-        assert converter.can_convert(Path("test.jpg"))
-        assert converter.can_convert(Path("test.png"))
         assert converter.can_convert(Path("test.zip"))
 
     def test_can_convert_case_insensitive(self):

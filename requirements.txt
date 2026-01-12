@@ -1,4 +1,6 @@
-markitdown[all]>=0.1.0
-PyQt6>=6.6.0
+markitdown>=0.1.4
 typer>=0.9.0
 rich>=13.0.0
+
+# Optional GUI dependency:
+# PyQt6>=6.6.0

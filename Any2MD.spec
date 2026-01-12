@@ -28,7 +28,7 @@ _VERSION = _read_project_version()
 _BUNDLE_ID = "com.dustbinchen.any2md"
 
 a = Analysis(
-    ['run.py'],
+    ['run_gui.py'],
     pathex=[],
     binaries=[],
     datas=[('README.md', '.')],
@@ -36,9 +36,9 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=["magika", "onnxruntime"],
     noarchive=False,
-    optimize=0,
+    optimize=2,
 )
 pyz = PYZ(a.pure)
 
@@ -50,7 +50,7 @@ exe = EXE(
     name='Any2MD',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=False,
+    strip=True,
     upx=False,
     console=False,
     disable_windowed_traceback=False,
@@ -64,7 +64,7 @@ coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
-    strip=False,
+    strip=True,
     upx=False,
     upx_exclude=[],
     name='Any2MD',

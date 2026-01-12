@@ -20,17 +20,23 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact_name: Any2MD-linux
-            asset_name: Any2MD-linux-x64.tar.gz
+            variant: gui
+            asset_name: Any2MD-linux-gui-x64.tar.gz
+          - os: ubuntu-latest
+            variant: cli
+            asset_name: Any2MD-linux-cli-x64.tar.gz
           - os: macos-15
-            artifact_name: Any2MD-macos-intel
+            variant: gui
             asset_name: Any2MD-macos-intel.zip
           - os: macos-latest
-            artifact_name: Any2MD-macos-arm64
+            variant: gui
             asset_name: Any2MD-macos-arm64.zip
           - os: windows-latest
-            artifact_name: Any2MD-windows.exe
-            asset_name: Any2MD-windows-x64.zip
+            variant: gui
+            asset_name: Any2MD-windows-gui-x64.zip
+          - os: windows-latest
+            variant: cli
+            asset_name: Any2MD-windows-cli-x64.zip
 
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +46,15 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install dependencies (GUI)
+        if: matrix.variant == 'gui'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[gui]"
+          pip install pyinstaller
+
+      - name: Install dependencies (CLI)
+        if: matrix.variant == 'cli'
         run: |
           python -m pip install --upgrade pip
           pip install -e .
@@ -51,34 +65,80 @@ jobs:
         run: |
           pyinstaller --noconfirm --clean Any2MD.spec
 
+          # Prune optional Qt bits to reduce artifact size.
+          python scripts/prune_qt.py dist/Any2MD.app/Contents/Frameworks/PyQt6/Qt6
+
           # Sanity check: Qt frameworks must be bundled as frameworks (not flattened dylibs),
           # otherwise Qt will crash on launch when resolving bundle paths.
           test -d dist/Any2MD.app/Contents/Frameworks/PyQt6/Qt6/lib/QtCore.framework
           test -d dist/Any2MD.app/Contents/Frameworks/PyQt6/Qt6/lib/QtGui.framework
           test -d dist/Any2MD.app/Contents/Frameworks/PyQt6/Qt6/lib/QtWidgets.framework
 
-      - name: Build with PyInstaller (Linux)
-        if: runner.os == 'Linux'
+      - name: Build with PyInstaller (Linux GUI)
+        if: runner.os == 'Linux' && matrix.variant == 'gui'
+        run: |
+          pyinstaller --name Any2MD \
+            --onedir \
+            --windowed \
+            --strip \
+            --optimize 2 \
+            --exclude-module magika \
+            --exclude-module onnxruntime \
+            --icon=docs/icon.png \
+            --add-data "README.md:." \
+            run_gui.py
+
+          python scripts/prune_qt.py dist/Any2MD/PyQt6/Qt6
+
+      - name: Build with PyInstaller (Linux CLI)
+        if: runner.os == 'Linux' && matrix.variant == 'cli'
         run: |
           pyinstaller --name Any2MD \
             --onefile \
-            --windowed \
+            --console \
+            --strip \
+            --optimize 2 \
+            --exclude-module magika \
+            --exclude-module onnxruntime \
             --icon=docs/icon.png \
             --add-data "README.md:." \
-            run.py
+            run_cli.py
 
-      - name: Build with PyInstaller (Windows)
-        if: runner.os == 'Windows'
+      - name: Build with PyInstaller (Windows GUI)
+        if: runner.os == 'Windows' && matrix.variant == 'gui'
+        run: |
+          pyinstaller --name Any2MD `
+            --onedir `
+            --windowed `
+            --optimize 2 `
+            --exclude-module magika `
+            --exclude-module onnxruntime `
+            --icon=docs/icon.ico `
+            --add-data "README.md;." `
+            run_gui.py
+
+          python scripts/prune_qt.py dist/Any2MD/PyQt6/Qt6
+
+      - name: Build with PyInstaller (Windows CLI)
+        if: runner.os == 'Windows' && matrix.variant == 'cli'
         run: |
           pyinstaller --name Any2MD `
             --onefile `
-            --windowed `
+            --console `
+            --optimize 2 `
+            --exclude-module magika `
+            --exclude-module onnxruntime `
             --icon=docs/icon.ico `
             --add-data "README.md;." `
-            run.py
+            run_cli.py
 
-      - name: Package artifacts (Windows)
-        if: runner.os == 'Windows'
+      - name: Package artifacts (Windows GUI)
+        if: runner.os == 'Windows' && matrix.variant == 'gui'
+        run: |
+          Compress-Archive -Path dist/Any2MD -DestinationPath dist/${{ matrix.asset_name }}
+
+      - name: Package artifacts (Windows CLI)
+        if: runner.os == 'Windows' && matrix.variant == 'cli'
         run: |
           Compress-Archive -Path dist/Any2MD.exe -DestinationPath dist/${{ matrix.asset_name }}
 
