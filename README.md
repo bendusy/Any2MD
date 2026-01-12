@@ -81,6 +81,16 @@ python -m any2md convert document.pdf --output ./output
 2. 找到由 "未知开发者" 开发的 Any2MD
 3. 点击 **"仍要打开" (Open Anyway)**
 
+### 命令行解决 (进阶)
+
+如果你熟悉终端，也可以使用以下命令清除应用的隔离属性：
+
+```bash
+xattr -cr /Applications/Any2MD.app
+# 或者针对解压后的 Any2MD.app 路径
+xattr -cr path/to/Any2MD.app
+```
+
 ## 项目结构
 
 ```
