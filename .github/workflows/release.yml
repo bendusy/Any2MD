@@ -22,7 +22,7 @@ jobs:
           - os: ubuntu-latest
             artifact_name: Any2MD-linux
             asset_name: Any2MD-linux-x64.tar.gz
-          - os: macos-13
+          - os: macos-15
             artifact_name: Any2MD-macos-intel
             asset_name: Any2MD-macos-intel.zip
           - os: macos-latest
