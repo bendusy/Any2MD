@@ -46,24 +46,26 @@ jobs:
           pip install -e .
           pip install pyinstaller
 
-      - name: Build with PyInstaller (Unix)
-        if: runner.os != 'Windows'
+      - name: Build with PyInstaller (macOS)
+        if: runner.os == 'macOS'
         run: |
-          if [ "${{ runner.os }}" == "macOS" ]; then
-            pyinstaller --name Any2MD \
-              --onedir \
-              --windowed \
-              --icon=docs/icon.png \
-              --add-data "README.md:." \
-              run.py
-          else
-            pyinstaller --name Any2MD \
-              --onefile \
-              --windowed \
-              --icon=docs/icon.png \
-              --add-data "README.md:." \
-              run.py
-          fi
+          pyinstaller --noconfirm --clean Any2MD.spec
+
+          # Sanity check: Qt frameworks must be bundled as frameworks (not flattened dylibs),
+          # otherwise Qt will crash on launch when resolving bundle paths.
+          test -d dist/Any2MD.app/Contents/Frameworks/PyQt6/Qt6/lib/QtCore.framework
+          test -d dist/Any2MD.app/Contents/Frameworks/PyQt6/Qt6/lib/QtGui.framework
+          test -d dist/Any2MD.app/Contents/Frameworks/PyQt6/Qt6/lib/QtWidgets.framework
+
+      - name: Build with PyInstaller (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          pyinstaller --name Any2MD \
+            --onefile \
+            --windowed \
+            --icon=docs/icon.png \
+            --add-data "README.md:." \
+            run.py
 
       - name: Build with PyInstaller (Windows)
         if: runner.os == 'Windows'
@@ -84,7 +86,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           cd dist
-          zip -r ${{ matrix.asset_name }} Any2MD.app
+          ditto -c -k --sequesterRsrc --keepParent Any2MD.app ${{ matrix.asset_name }}
 
       - name: Package artifacts (Linux)
         if: runner.os == 'Linux'

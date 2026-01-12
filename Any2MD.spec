@@ -1,62 +1,84 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-block_cipher = None
+from __future__ import annotations
+
+from pathlib import Path
+
+
+def _read_project_version() -> str:
+    try:
+        import tomllib  # py>=3.11
+
+        candidates = [
+            Path.cwd() / "pyproject.toml",
+            Path(__file__).resolve().with_name("pyproject.toml"),
+        ]
+        pyproject_path = next((p for p in candidates if p.exists()), None)
+        if pyproject_path is None:
+            return "0.0.0"
+
+        with pyproject_path.open("rb") as f:
+            data = tomllib.load(f)
+        return str(data["project"]["version"])
+    except Exception:
+        return "0.0.0"
+
+
+_VERSION = _read_project_version()
+_BUNDLE_ID = "com.dustbinchen.any2md"
 
 a = Analysis(
-    ['any2md/__main__.py'],
+    ['run.py'],
     pathex=[],
     binaries=[],
-    datas=[
-        ('README.md', '.'),
-    ],
-    hiddenimports=[
-        'markitdown',
-        'PyQt6',
-        'typer',
-        'rich',
-    ],
+    datas=[('README.md', '.')],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
     noarchive=False,
+    optimize=0,
 )
-
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='Any2MD',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
+    upx=False,
     console=False,
     disable_windowed_traceback=False,
-    argv_emulation=False,
+    argv_emulation=True,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['docs/icon.png'],
 )
-
-app = BUNDLE(
+coll = COLLECT(
     exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=False,
+    upx_exclude=[],
+    name='Any2MD',
+)
+app = BUNDLE(
+    coll,
     name='Any2MD.app',
-    icon='docs/icon.icns',
-    bundle_identifier='com.dustbinchen.any2md',
+    icon='docs/icon.png',
+    bundle_identifier=_BUNDLE_ID,
     info_plist={
-        'CFBundleShortVersionString': '0.1.0',
-        'CFBundleVersion': '0.1.0',
-        'NSHighResolutionCapable': 'True',
+        "CFBundleDisplayName": "Any2MD",
+        "CFBundleName": "Any2MD",
+        "CFBundleShortVersionString": _VERSION,
+        "CFBundleVersion": _VERSION,
+        "NSHighResolutionCapable": True,
     },
 )
