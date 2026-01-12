@@ -17,8 +17,14 @@ class FilenameCleaner:
         }
 
     def clean(self, filename: str) -> str:
-        name = Path(filename).stem
-        ext = Path(filename).suffix
+        # Split extension manually to avoid Path interpreting slashes as separators
+        # when we want to treat them as illegal characters.
+        name, dot, ext = filename.rpartition(".")
+        if not dot:
+            name = filename
+            ext = ""
+        else:
+            ext = dot + ext
 
         if self.config.get("remove_special_chars", True):
             name = self.ILLEGAL_CHARS_PATTERN.sub("", name)
@@ -33,6 +39,7 @@ class FilenameCleaner:
 
         if self.config.get("lowercase", False):
             name = name.lower()
+            ext = ext.lower()
 
         max_length = self.config.get("max_length", 200)
         if len(name) > max_length:
