@@ -49,12 +49,21 @@ jobs:
       - name: Build with PyInstaller (Unix)
         if: runner.os != 'Windows'
         run: |
-          pyinstaller --name Any2MD \
-            --onefile \
-            --windowed \
-            --icon=docs/icon.png \
-            --add-data "README.md:." \
-            any2md/__main__.py
+          if [ "${{ runner.os }}" == "macOS" ]; then
+            pyinstaller --name Any2MD \
+              --onedir \
+              --windowed \
+              --icon=docs/icon.png \
+              --add-data "README.md:." \
+              run.py
+          else
+            pyinstaller --name Any2MD \
+              --onefile \
+              --windowed \
+              --icon=docs/icon.png \
+              --add-data "README.md:." \
+              run.py
+          fi
 
       - name: Build with PyInstaller (Windows)
         if: runner.os == 'Windows'
@@ -64,7 +73,7 @@ jobs:
             --windowed `
             --icon=docs/icon.ico `
             --add-data "README.md;." `
-            any2md/__main__.py
+            run.py
 
       - name: Package artifacts (Windows)
         if: runner.os == 'Windows'
