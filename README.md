@@ -60,7 +60,26 @@ python -m any2md convert archive.zip --output ./output
 
 # 转换单个文件
 python -m any2md convert document.pdf --output ./output
+# 转换单个文件
+python -m any2md convert document.pdf --output ./output
 ```
+
+## 常见问题 (FAQ)
+
+### macOS 提示"无法打开...，因为Apple无法检查其是否包含恶意软件"
+
+由于 Any2MD 未进行 Apple 开发者签名（Notarization），首次打开时可能会遇到此提示。请按以下步骤操作：
+
+1. **不要直接双击打开 APP**
+2. 在 `Any2MD.app` 上 **点击右键** (或按住 Control 键点击)
+3. 在弹出的菜单中选择 **"打开" (Open)**
+4. 在随后弹出的确认对话框中点击 **"打开" (Open)** 即可
+
+或者：
+
+1. 打开 "系统设置" -> "隐私与安全性"
+2. 找到由 "未知开发者" 开发的 Any2MD
+3. 点击 **"仍要打开" (Open Anyway)**
 
 ## 项目结构
 
