@@ -1,0 +1,95 @@
+# Any2MD
+
+**一键导入文件夹或 ZIP → 自动解压 → 批量转换为 Markdown**
+
+Any2MD 是一个基于 [Microsoft MarkItDown](https://github.com/microsoft/markitdown) 的图形化批量转换工具，帮助你快速把各种文档、笔记、网页导出文件等批量转换成统一的 Markdown 格式。
+
+## 特性
+
+- 🎯 **基于 Microsoft MarkItDown** - 强大的文档转换引擎
+- 📁 **支持拖拽** - 直接拖入文件夹或 ZIP 文件
+- 🗜️ **自动解压** - ZIP 压缩包自动解压后处理
+- 📄 **多格式支持** - PDF、DOCX、PPTX、XLSX、HTML、图片等
+- 🖥️ **图形界面** - 简洁易用的 PyQt6 界面
+- ⌨️ **命令行支持** - 适合脚本批量处理
+
+## 支持的格式
+
+基于 MarkItDown 支持的所有格式：
+
+| 格式 | 说明 |
+|------|------|
+| PDF | 文本提取 |
+| Word | .docx 文档 |
+| PowerPoint | .pptx 演示文稿 |
+| Excel | .xlsx / .xls 表格 |
+| HTML | 网页文件 |
+| 图片 | 支持 EXIF 和 OCR |
+| 音频 | 语音转文字（需配置） |
+| ZIP | 自动解压处理 |
+
+## 快速开始
+
+### 安装
+
+```bash
+git clone https://github.com/dustbinchen/Any2MD.git
+cd Any2MD
+pip install -r requirements.txt
+```
+
+### 图形界面
+
+```bash
+python -m any2md
+```
+
+1. 拖入文件夹或 ZIP 文件
+2. 选择输出目录
+3. 点击「开始转换」
+4. 完成！
+
+### 命令行
+
+```bash
+# 转换文件夹
+python -m any2md convert ./docs --output ./output
+
+# 转换 ZIP
+python -m any2md convert archive.zip --output ./output
+
+# 转换单个文件
+python -m any2md convert document.pdf --output ./output
+```
+
+## 项目结构
+
+```
+Any2MD/
+├── any2md/
+│   ├── __init__.py
+│   ├── __main__.py      # 入口
+│   ├── cli.py           # 命令行接口
+│   ├── gui.py           # PyQt6 图形界面
+│   ├── converter.py     # 核心转换引擎（封装 MarkItDown）
+│   ├── unzipper.py      # ZIP 解压
+│   └── cleaner.py       # 文件名清理
+├── tests/
+├── requirements.txt
+└── README.md
+```
+
+## 依赖
+
+- Python >= 3.10
+- markitdown[all] - Microsoft MarkItDown
+- PyQt6 - 图形界面
+- typer - 命令行接口
+
+## 许可证
+
+MIT License
+
+---
+
+**Any2MD** —— 让任何内容都变成可搜索、可链接的 Markdown。

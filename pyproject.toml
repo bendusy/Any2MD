@@ -1,0 +1,44 @@
+[project]
+name = "any2md"
+version = "0.1.0"
+description = "批量转换各种文档格式为 Markdown"
+authors = [{ name = "dustbinchen" }]
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["markdown", "converter", "document", "markitdown"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "markitdown[all]>=0.1.0",
+    "PyQt6>=6.6.0",
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+any2md = "any2md.cli:app"
+
+[project.gui-scripts]
+any2md-gui = "any2md.gui:run_gui"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["any2md"]
