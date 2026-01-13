@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.1 (2026-01-13)
+
+### Bug Fixes
+
+- Resolve semver tag for workflow_run releases
+  ([`0d9ebe5`](https://github.com/bendusy/Any2MD/commit/0d9ebe574a635fb63fabea823de0b1fc9f78a35e))
+
+
 ## v1.2.0 (2026-01-13)
 
 ### Features
