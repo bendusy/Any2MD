@@ -5,6 +5,7 @@ import errno
 import shutil
 import subprocess
 import tempfile
+import os
 
 from markitdown import MarkItDown
 
@@ -43,6 +44,13 @@ class Any2MDConverter:
         self.md = MarkItDown(enable_plugins=enable_plugins)
 
     def _find_soffice(self) -> Optional[str]:
+        for env_key in ("ANY2MD_SOFFICE", "SOFFICE_PATH"):
+            env_val = os.environ.get(env_key)
+            if env_val:
+                path = Path(env_val).expanduser()
+                if path.exists():
+                    return str(path)
+
         candidates = [shutil.which("soffice"), shutil.which("soffice.exe")]
         candidates.extend(
             [
@@ -85,7 +93,9 @@ class Any2MDConverter:
 
         soffice = self._find_soffice()
         if soffice is None:
-            raise RuntimeError("未检测到 LibreOffice（soffice），无法转换旧格式文件")
+            raise RuntimeError(
+                "未检测到 LibreOffice（soffice），无法转换旧格式文件；请先安装 LibreOffice，或设置环境变量 ANY2MD_SOFFICE 指向 soffice 可执行文件"
+            )
 
         out_dir.mkdir(parents=True, exist_ok=True)
         cmd = [
