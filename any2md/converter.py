@@ -393,3 +393,38 @@ throw "Office/WPS conversion failed"
                 results.append(result)
 
         return results
+
+    def merge_markdown(self, results: list[ConvertResult], base_dir: Optional[Path]) -> str:
+        base_dir_path = Path(base_dir) if base_dir else None
+
+        parts: list[str] = []
+        parts.append("# Any2MD 合并文档\n")
+
+        for r in results:
+            if not r.success:
+                continue
+            try:
+                rel = (
+                    str(r.input_path.relative_to(base_dir_path))
+                    if base_dir_path is not None
+                    else r.input_path.name
+                )
+            except Exception:
+                rel = r.input_path.name
+
+            parts.append(f"\n---\n\n## {rel}\n")
+            if r.title:
+                parts.append(f"\n**标题**：{r.title}\n")
+            parts.append("\n")
+            parts.append((r.markdown or "").rstrip() + "\n")
+
+        return "".join(parts)
+
+    def write_merged_markdown(
+        self, results: list[ConvertResult], merged_path: Path, base_dir: Optional[Path]
+    ) -> Path:
+        merged_path = Path(merged_path)
+        merged_path.parent.mkdir(parents=True, exist_ok=True)
+        content = self.merge_markdown(results=results, base_dir=base_dir)
+        merged_path.write_text(content, encoding="utf-8")
+        return merged_path

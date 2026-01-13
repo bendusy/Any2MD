@@ -16,9 +16,11 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QMessageBox,
     QFrame,
+    QCheckBox,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QStandardPaths, QUrl
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent
+from PyQt6.QtGui import QDesktopServices
 
 from .converter import Any2MDConverter, ConvertResult
 from .unzipper import Unzipper
@@ -29,21 +31,31 @@ class ConvertWorker(QThread):
     finished = pyqtSignal(list)
     error = pyqtSignal(str)
 
-    def __init__(self, input_path: Path, output_path: Path):
+    def __init__(
+        self,
+        input_path: Path,
+        output_path: Path,
+        merge_to_single: bool,
+        merged_filename: str,
+    ):
         super().__init__()
         self.input_path = input_path
         self.output_path = output_path
+        self.merge_to_single = merge_to_single
+        self.merged_filename = merged_filename
 
     def run(self):
         try:
             converter = Any2MDConverter()
             results = []
+            base_dir = self.input_path
 
             if self.input_path.suffix.lower() == ".zip":
                 self.progress.emit("解压 ZIP 文件...")
                 with Unzipper() as unzipper:
                     extracted = unzipper.extract_recursive(self.input_path)
                     self.progress.emit("转换文件...")
+                    base_dir = extracted
                     results = converter.convert_directory(extracted, self.output_path)
             elif self.input_path.is_dir():
                 self.progress.emit("转换文件夹...")
@@ -51,6 +63,16 @@ class ConvertWorker(QThread):
             else:
                 self.progress.emit("转换文件...")
                 results = [converter.convert_file(self.input_path, self.output_path)]
+
+            if self.merge_to_single:
+                self.progress.emit("合并为单个 Markdown...")
+                merged_name = (self.merged_filename or "").strip() or "Any2MD-合并.md"
+                if not merged_name.lower().endswith(".md"):
+                    merged_name += ".md"
+                merged_path = self.output_path / merged_name
+                converter.write_merged_markdown(
+                    results=results, merged_path=merged_path, base_dir=base_dir
+                )
 
             self.finished.emit(results)
         except Exception as e:
@@ -158,12 +180,27 @@ class MainWindow(QMainWindow):
 
         output_layout = QHBoxLayout()
         output_layout.addWidget(QLabel("输出:"))
-        self.output_edit = QLineEdit(str(Path.home() / "Any2MD-output"))
+        self.output_edit = QLineEdit(str(self._default_output_dir()))
         output_layout.addWidget(self.output_edit)
         self.browse_output_btn = QPushButton("浏览")
         self.browse_output_btn.clicked.connect(self.browse_output)
         output_layout.addWidget(self.browse_output_btn)
+
+        self.open_output_btn = QPushButton("打开")
+        self.open_output_btn.clicked.connect(self.open_output_dir)
+        output_layout.addWidget(self.open_output_btn)
         layout.addLayout(output_layout)
+
+        merge_layout = QHBoxLayout()
+        self.merge_checkbox = QCheckBox("合并为单个 Markdown（便于上传到 AI）")
+        self.merge_checkbox.setChecked(True)
+        self.merge_checkbox.stateChanged.connect(self.on_merge_toggle)
+        merge_layout.addWidget(self.merge_checkbox)
+
+        merge_layout.addWidget(QLabel("文件名:"))
+        self.merge_name_edit = QLineEdit("Any2MD-合并.md")
+        merge_layout.addWidget(self.merge_name_edit)
+        layout.addLayout(merge_layout)
 
         self.convert_btn = QPushButton("开始转换")
         self.convert_btn.setMinimumHeight(40)
@@ -199,6 +236,25 @@ class MainWindow(QMainWindow):
         self.log_text.setMaximumHeight(150)
         layout.addWidget(self.log_text)
 
+    def _default_output_dir(self) -> Path:
+        desktop = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.DesktopLocation
+        )
+        if desktop:
+            p = Path(desktop) / "Any2MD-output"
+            return p
+        documents = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.DocumentsLocation
+        )
+        if documents:
+            p = Path(documents) / "Any2MD-output"
+            return p
+        return Path.home() / "Any2MD-output"
+
+    def on_merge_toggle(self):
+        enabled = self.merge_checkbox.isChecked()
+        self.merge_name_edit.setEnabled(enabled)
+
     def on_path_dropped(self, path: str):
         self.input_edit.setText(path)
         self.drop_area.label.setText(f"已选择: {Path(path).name}")
@@ -213,9 +269,15 @@ class MainWindow(QMainWindow):
         if path:
             self.output_edit.setText(path)
 
+    def open_output_dir(self):
+        output_path = Path(self.output_edit.text().strip() or str(self._default_output_dir()))
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(output_path)))
+
     def start_convert(self):
         input_path = Path(self.input_edit.text().strip())
         output_path = Path(self.output_edit.text().strip())
+        merge_to_single = self.merge_checkbox.isChecked()
+        merged_filename = self.merge_name_edit.text().strip()
 
         if not input_path or not input_path.exists():
             QMessageBox.warning(self, "错误", "请选择有效的输入路径")
@@ -225,7 +287,12 @@ class MainWindow(QMainWindow):
         self.progress_bar.show()
         self.log_text.clear()
 
-        self.worker = ConvertWorker(input_path, output_path)
+        self.worker = ConvertWorker(
+            input_path=input_path,
+            output_path=output_path,
+            merge_to_single=merge_to_single,
+            merged_filename=merged_filename,
+        )
         self.worker.progress.connect(self.on_progress)
         self.worker.finished.connect(self.on_finished)
         self.worker.error.connect(self.on_error)
