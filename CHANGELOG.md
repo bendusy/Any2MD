@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.4.0 (2026-01-13)
+
+### Features
+
+- GUI support selecting files and folders
+  ([`64923b9`](https://github.com/bendusy/Any2MD/commit/64923b9da64cca0c836e9e149f05b8b079422a4d))
+
+
 ## v1.3.0 (2026-01-13)
 
 ### Features
