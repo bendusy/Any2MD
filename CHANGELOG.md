@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.5.2 (2026-01-13)
+
+### Bug Fixes
+
+- 修复 prune_qt.py 删除 translations 目录后遗留死链接的问题
+  ([`11f3864`](https://github.com/bendusy/Any2MD/commit/11f3864befe14fcf5a0729e81abb0765663981ff))
+
+
 ## v1.5.1 (2026-01-13)
 
 ### Bug Fixes
