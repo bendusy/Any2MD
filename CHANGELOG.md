@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.5.0 (2026-01-13)
+
+### Features
+
+- 升级GUI至'Morning Light'主题，增强状态反馈与macOS兼容性
+  ([`ff79d73`](https://github.com/bendusy/Any2MD/commit/ff79d739b7af9d6b4af8d96cb7785d49daf744d4))
+
+
 ## v1.4.0 (2026-01-13)
 
 ### Features
