@@ -33,6 +33,9 @@ dependencies = [
 gui = [
     "PyQt6>=6.6.0",
 ]
+legacy = [
+    "xlrd>=2.0.2",
+]
 full = [
     "markitdown[all]>=0.1.4",
 ]

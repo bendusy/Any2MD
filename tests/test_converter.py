@@ -86,6 +86,30 @@ class TestAny2MDConverter:
         assert "Conversion failed" in result.error
 
     @patch("any2md.converter.MarkItDown")
+    def test_convert_doc_via_soffice_then_markitdown(self, mock_markitdown_class, tmp_path):
+        test_file = tmp_path / "test.doc"
+        test_file.write_bytes(b"fake doc")
+
+        converted = tmp_path / "converted.docx"
+        converted.write_bytes(b"fake docx")
+
+        mock_result = Mock()
+        mock_result.text_content = "converted markdown"
+        mock_result.title = "Converted"
+
+        mock_md = Mock()
+        mock_md.convert.return_value = mock_result
+        mock_markitdown_class.return_value = mock_md
+
+        converter = Any2MDConverter()
+        converter._convert_via_soffice = Mock(return_value=converted)
+
+        result = converter.convert_file(test_file)
+
+        assert result.success
+        mock_md.convert.assert_called_once_with(str(converted))
+
+    @patch("any2md.converter.MarkItDown")
     def test_convert_directory(self, mock_markitdown_class, tmp_path):
         input_dir = tmp_path / "input"
         input_dir.mkdir()

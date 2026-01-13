@@ -26,7 +26,9 @@ Any2MD 是一个基于 [Microsoft MarkItDown](https://github.com/microsoft/marki
 | HTML | 网页文件 |
 | ZIP | 自动解压处理 |
 
-说明：暂不支持旧格式 `.doc/.ppt/.xls`，请先另存为 `.docx/.pptx/.xlsx` 后再转换。
+说明：
+- `.doc/.ppt` 旧格式需要系统已安装 LibreOffice（Any2MD 会自动调用 LibreOffice 做转换）。
+- `.xls` 旧格式优先使用 LibreOffice；如果不装 LibreOffice，也可以安装 `any2md[legacy]`（内置 `xlrd`）来转换。
 
 ## 快速开始
 
@@ -44,6 +46,9 @@ pip install -e ".[gui]"
 
 # 全功能（未来要 OCR/音频等再装这个，会显著变大）
 pip install -e ".[full]"
+
+# 旧格式支持（.xls 无 LibreOffice 也可转换）
+pip install -e ".[legacy]"
 ```
 
 ### 图形界面
