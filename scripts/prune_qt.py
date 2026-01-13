@@ -26,9 +26,12 @@ def prune_qt(qt_root: Path) -> None:
         else:
             raise SystemExit(f"Qt root not found under: {qt_root}")
 
-    # Low-risk removals that typically save space.
-    _remove_if_exists(qt_root / "translations")
-    _remove_if_exists(qt_root / "qml")
+    for name in ("translations", "qml"):
+        _remove_if_exists(qt_root / name)
+        resources_path = (
+            qt_root.parent.parent.parent / "Resources" / "PyQt6" / "Qt6" / name
+        )
+        _remove_if_exists(resources_path)
 
     plugins = qt_root / "plugins"
     if plugins.is_dir():
