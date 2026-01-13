@@ -26,6 +26,8 @@ Any2MD 是一个基于 [Microsoft MarkItDown](https://github.com/microsoft/marki
 | HTML | 网页文件 |
 | ZIP | 自动解压处理 |
 
+说明：暂不支持旧格式 `.doc/.ppt/.xls`，请先另存为 `.docx/.pptx/.xlsx` 后再转换。
+
 ## 快速开始
 
 ### 安装
@@ -51,7 +53,7 @@ python -m any2md
 ```
 
 1. 拖入文件夹或 ZIP 文件
-2. 选择输出目录
+2. 选择输出目录（默认 `~/Any2MD-output`）
 3. 点击「开始转换」
 4. 完成！
 

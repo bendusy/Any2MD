@@ -2,10 +2,15 @@ import pytest
 import zipfile
 import shutil
 from pathlib import Path
-from any2md.unzipper import Unzipper
+from any2md.unzipper import Unzipper, _decode_legacy_zip_name
 
 
 class TestUnzipper:
+    def test_decode_legacy_zip_name_gbk(self):
+        original = "测试文件.docx"
+        mojibake = original.encode("gbk").decode("cp437")
+        assert _decode_legacy_zip_name(mojibake) == original
+
     def test_is_zip_valid(self, tmp_path):
         zip_path = tmp_path / "test.zip"
         with zipfile.ZipFile(zip_path, "w") as zf:

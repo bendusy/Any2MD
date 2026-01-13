@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
+import errno
 
 from markitdown import MarkItDown
 
@@ -38,6 +39,18 @@ class Any2MDConverter:
     def __init__(self, enable_plugins: bool = False):
         self.md = MarkItDown(enable_plugins=enable_plugins)
 
+    def _prepare_output_dir(self, output_dir: Path) -> Path:
+        output_dir = Path(output_dir)
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            return output_dir
+        except OSError as e:
+            if e.errno in {errno.EROFS, errno.EACCES} and not output_dir.is_absolute():
+                fallback = Path.home() / output_dir
+                fallback.mkdir(parents=True, exist_ok=True)
+                return fallback
+            raise
+
     def can_convert(self, file_path: Path) -> bool:
         return file_path.suffix.lower() in self.SUPPORTED_EXTENSIONS
 
@@ -58,6 +71,16 @@ class Any2MDConverter:
                 error=f"不支持的格式: {input_path.suffix}",
             )
 
+        if input_path.suffix.lower() in {".doc", ".ppt", ".xls"}:
+            return ConvertResult(
+                success=False,
+                input_path=input_path,
+                error=(
+                    f"暂不支持旧格式 {input_path.suffix}，请另存为 "
+                    ".docx/.pptx/.xlsx 后再转换"
+                ),
+            )
+
         try:
             result = self.md.convert(str(input_path))
             markdown_content = result.text_content or ""
@@ -65,10 +88,20 @@ class Any2MDConverter:
 
             output_path = None
             if output_dir:
-                output_dir = Path(output_dir)
-                output_dir.mkdir(parents=True, exist_ok=True)
+                output_dir = self._prepare_output_dir(output_dir)
                 output_path = output_dir / f"{input_path.stem}.md"
-                output_path.write_text(markdown_content, encoding="utf-8")
+                try:
+                    output_path.write_text(markdown_content, encoding="utf-8")
+                except OSError as e:
+                    if (
+                        e.errno in {errno.EROFS, errno.EACCES}
+                        and not output_dir.is_absolute()
+                    ):
+                        output_dir = self._prepare_output_dir(Path.home() / output_dir)
+                        output_path = output_dir / f"{input_path.stem}.md"
+                        output_path.write_text(markdown_content, encoding="utf-8")
+                    else:
+                        raise
 
             return ConvertResult(
                 success=True,

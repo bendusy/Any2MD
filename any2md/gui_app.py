@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
 
         output_layout = QHBoxLayout()
         output_layout.addWidget(QLabel("输出:"))
-        self.output_edit = QLineEdit("./output")
+        self.output_edit = QLineEdit(str(Path.home() / "Any2MD-output"))
         output_layout.addWidget(self.output_edit)
         self.browse_output_btn = QPushButton("浏览")
         self.browse_output_btn.clicked.connect(self.browse_output)

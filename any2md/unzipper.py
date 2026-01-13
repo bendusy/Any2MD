@@ -5,6 +5,33 @@ from pathlib import Path
 from typing import Optional
 
 
+_MOJIBAKE_HINT_CHARS = set("╬║═╔╦╩╚╠╣╧╨╤┐┘┌└─│▒▓░╪╫╘╛╒╓╜╞╟╢╖╕╝╗")
+
+
+def _decode_legacy_zip_name(name: str) -> str:
+    if not name:
+        return name
+    if name.isascii():
+        return name
+    if not any(ch in _MOJIBAKE_HINT_CHARS for ch in name):
+        return name
+    try:
+        raw = name.encode("cp437")
+        return raw.decode("gbk")
+    except Exception:
+        return name
+
+
+def _safe_join(root: Path, relative: str) -> Path:
+    root_resolved = root.resolve()
+    dest = (root / relative).resolve()
+    try:
+        dest.relative_to(root_resolved)
+    except ValueError as e:
+        raise ValueError(f"Unsafe zip path: {relative}") from e
+    return dest
+
+
 class Unzipper:
     def __init__(self, temp_dir: Optional[Path] = None):
         self.temp_dir = temp_dir
@@ -25,7 +52,17 @@ class Unzipper:
             output_dir.mkdir(parents=True, exist_ok=True)
 
         with zipfile.ZipFile(zip_path, "r") as zf:
-            zf.extractall(output_dir)
+            for info in zf.infolist():
+                decoded_name = _decode_legacy_zip_name(info.filename)
+                dest_path = _safe_join(output_dir, decoded_name)
+
+                if info.is_dir():
+                    dest_path.mkdir(parents=True, exist_ok=True)
+                    continue
+
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
+                with zf.open(info, "r") as src, dest_path.open("wb") as dst:
+                    shutil.copyfileobj(src, dst)
 
         return output_dir
 
