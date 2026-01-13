@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.2 (2026-01-13)
+
+### Bug Fixes
+
+- Publish GitHub releases only after successful builds
+  ([`b4b061b`](https://github.com/bendusy/Any2MD/commit/b4b061b65b6dad17af0a7f732d8a5537fcb664b9))
+
+
 ## v1.2.1 (2026-01-13)
 
 ### Bug Fixes
