@@ -17,7 +17,14 @@ def _remove_if_exists(path: Path) -> None:
 def prune_qt(qt_root: Path) -> None:
     qt_root = qt_root.resolve()
     if not qt_root.exists():
-        raise SystemExit(f"Qt root not found: {qt_root}")
+        raise SystemExit(f"Path not found: {qt_root}")
+
+    if qt_root.is_dir() and qt_root.name != "Qt6":
+        matches = list(qt_root.glob("**/PyQt6/Qt6"))
+        if matches:
+            qt_root = matches[0].resolve()
+        else:
+            raise SystemExit(f"Qt root not found under: {qt_root}")
 
     # Low-risk removals that typically save space.
     _remove_if_exists(qt_root / "translations")
@@ -33,7 +40,9 @@ def prune_qt(qt_root: Path) -> None:
 
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
-        print("Usage: python scripts/prune_qt.py <QtRootDir>", file=sys.stderr)
+        print(
+            "Usage: python scripts/prune_qt.py <QtRootDir|AppRootDir>", file=sys.stderr
+        )
         return 2
     prune_qt(Path(argv[1]))
     return 0
@@ -41,4 +50,3 @@ def main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main(sys.argv))
-

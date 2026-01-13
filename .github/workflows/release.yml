@@ -66,7 +66,7 @@ jobs:
           pyinstaller --noconfirm --clean Any2MD.spec
 
           # Prune optional Qt bits to reduce artifact size.
-          python scripts/prune_qt.py dist/Any2MD.app/Contents/Frameworks/PyQt6/Qt6
+          python scripts/prune_qt.py dist/Any2MD.app
 
           # Sanity check: Qt frameworks must be bundled as frameworks (not flattened dylibs),
           # otherwise Qt will crash on launch when resolving bundle paths.
@@ -88,7 +88,7 @@ jobs:
             --add-data "README.md:." \
             run_gui.py
 
-          python scripts/prune_qt.py dist/Any2MD/PyQt6/Qt6
+          python scripts/prune_qt.py dist/Any2MD
 
       - name: Build with PyInstaller (Linux CLI)
         if: runner.os == 'Linux' && matrix.variant == 'cli'
@@ -117,7 +117,7 @@ jobs:
             --add-data "README.md;." `
             run_gui.py
 
-          python scripts/prune_qt.py dist/Any2MD/PyQt6/Qt6
+          python scripts/prune_qt.py dist/Any2MD
 
       - name: Build with PyInstaller (Windows CLI)
         if: runner.os == 'Windows' && matrix.variant == 'cli'
