@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.1.4 (2026-01-13)
+
+### Bug Fixes
+
+- Allow configuring soffice path for legacy formats
+  ([`7717758`](https://github.com/bendusy/Any2MD/commit/77177586bf2beff006048303885424a214ac2a41))
+
+
 ## v1.1.3 (2026-01-13)
 
 ### Bug Fixes
