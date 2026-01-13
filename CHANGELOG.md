@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.1.3 (2026-01-13)
+
+### Bug Fixes
+
+- Build releases from semantic-release tags
+  ([`5099b8b`](https://github.com/bendusy/Any2MD/commit/5099b8bd87821667849ee72e24c3a1929dc92a88))
+
+
 ## v1.1.2 (2026-01-13)
 
 ### Bug Fixes
