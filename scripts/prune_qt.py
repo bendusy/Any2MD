@@ -4,14 +4,39 @@ import shutil
 import sys
 from pathlib import Path
 
+REMOVABLE_DIRS = ("translations", "qml")
+KEEP_PLUGINS = {"platforms", "styles", "imageformats", "iconengines"}
 
-def _remove_if_exists(path: Path) -> None:
+
+def _remove(path: Path) -> bool:
     if not path.exists() and not path.is_symlink():
-        return
+        return False
     if path.is_symlink() or path.is_file():
         path.unlink()
     elif path.is_dir():
         shutil.rmtree(path, ignore_errors=True)
+    return True
+
+
+def _find_contents_dir(start: Path) -> Path | None:
+    for parent in [start, *start.parents]:
+        if parent.name == "Contents" and parent.is_dir():
+            return parent
+    return None
+
+
+def _prune_dirs(qt6_dir: Path) -> int:
+    count = 0
+    for name in REMOVABLE_DIRS:
+        if _remove(qt6_dir / name):
+            count += 1
+    plugins = qt6_dir / "plugins"
+    if plugins.is_dir():
+        for child in plugins.iterdir():
+            if child.is_dir() and child.name not in KEEP_PLUGINS:
+                if _remove(child):
+                    count += 1
+    return count
 
 
 def prune_qt(qt_root: Path) -> None:
@@ -26,21 +51,16 @@ def prune_qt(qt_root: Path) -> None:
         else:
             raise SystemExit(f"Qt root not found under: {qt_root}")
 
-    contents_dir = qt_root.parent.parent.parent
-    frameworks_qt6 = contents_dir / "Frameworks" / "PyQt6" / "Qt6"
-    resources_qt6 = contents_dir / "Resources" / "PyQt6" / "Qt6"
+    total = _prune_dirs(qt_root)
 
-    for name in ("translations", "qml"):
-        _remove_if_exists(qt_root / name)
-        _remove_if_exists(frameworks_qt6 / name)
-        _remove_if_exists(resources_qt6 / name)
+    contents_dir = _find_contents_dir(qt_root)
+    if contents_dir:
+        for subdir in ("Frameworks", "Resources"):
+            alt_qt6 = contents_dir / subdir / "PyQt6" / "Qt6"
+            if alt_qt6.exists() and alt_qt6 != qt_root:
+                total += _prune_dirs(alt_qt6)
 
-    plugins = qt_root / "plugins"
-    if plugins.is_dir():
-        keep = {"platforms", "styles", "imageformats", "iconengines"}
-        for child in plugins.iterdir():
-            if child.is_dir() and child.name not in keep:
-                _remove_if_exists(child)
+    print(f"Pruned {total} items from Qt6")
 
 
 def main(argv: list[str]) -> int:
