@@ -27,7 +27,7 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem,
     QHeaderView,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl, QPoint, QMutex
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl, QPoint
 from PyQt6.QtGui import (
     QDragEnterEvent,
     QDropEvent,
