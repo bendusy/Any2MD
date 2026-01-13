@@ -191,6 +191,37 @@ throw "Office/WPS conversion failed"
     def can_convert(self, file_path: Path) -> bool:
         return file_path.suffix.lower() in self.SUPPORTED_EXTENSIONS
 
+    def _convert_via_textutil(self, input_path: Path, out_dir: Path) -> Path:
+        """macOS only: Convert .doc to .docx using textutil"""
+        if shutil.which("textutil") is None:
+            raise RuntimeError("textutil not found")
+        
+        input_path = Path(input_path)
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        
+        output_path = out_dir / f"{input_path.stem}.docx"
+        
+        # textutil -convert docx input.doc -output output.docx
+        cmd = [
+            "textutil",
+            "-convert", "docx",
+            str(input_path),
+            "-output", str(output_path)
+        ]
+        
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        if proc.returncode != 0:
+            stderr = (proc.stderr or "").strip()
+            stdout = (proc.stdout or "").strip()
+            raise RuntimeError(
+                f"textutil conversion failed: {stderr or stdout}"
+            )
+            
+        if output_path.exists():
+            return output_path
+        raise RuntimeError("textutil output not found")
+
     def _convert_via_soffice(self, input_path: Path, out_dir: Path) -> Path:
         input_path = Path(input_path)
         out_dir = Path(out_dir)
@@ -300,6 +331,12 @@ throw "Office/WPS conversion failed"
                                 )
                             except Exception:
                                 converted_path = None
+                        elif sys.platform == "darwin" and legacy_suffix == ".doc":
+                            # macOS fallback: try textutil
+                            try:
+                                converted_path = self._convert_via_textutil(input_path, out_dir)
+                            except Exception:
+                                converted_path = None
                         else:
                             converted_path = None
 
@@ -311,13 +348,19 @@ throw "Office/WPS conversion failed"
                         title = getattr(result, "title", None)
                     except Exception:
                         if legacy_suffix != ".xls":
-                            raise RuntimeError(
-                                "未检测到可用的旧格式转换器："
-                                "Windows 请安装 Microsoft Office/WPS 或 LibreOffice；"
-                                "macOS/Linux 请安装 LibreOffice"
-                            )
+                            msg = "未检测到可用的旧格式转换器："
+                            if sys.platform == "win32":
+                                msg += "Windows 请安装 Microsoft Office/WPS 或 LibreOffice"
+                            elif sys.platform == "darwin":
+                                msg += "macOS 请安装 LibreOffice"
+                                if legacy_suffix == ".doc":
+                                    msg += " (textutil fallback 同时也失败)"
+                            else:
+                                msg += "Linux 请安装 LibreOffice"
+                            raise RuntimeError(msg)
                         markdown_content = self._convert_xls_with_xlrd(input_path)
                         title = input_path.stem
+
                     output_path = None
                     if output_dir:
                         output_dir = self._prepare_output_dir(output_dir)

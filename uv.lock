@@ -14,7 +14,7 @@ resolution-markers = [
 
 [[package]]
 name = "any2md"
-version = "1.0.0"
+version = "1.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
@@ -39,6 +39,9 @@ full = [
 gui = [
     { name = "pyqt6" },
 ]
+legacy = [
+    { name = "xlrd" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -55,8 +58,9 @@ requires-dist = [
     { name = "python-pptx", specifier = ">=0.6.23" },
     { name = "rich", specifier = ">=13.0.0" },
     { name = "typer", specifier = ">=0.9.0" },
+    { name = "xlrd", marker = "extra == 'legacy'", specifier = ">=2.0.2" },
 ]
-provides-extras = ["gui", "full", "dev"]
+provides-extras = ["gui", "legacy", "full", "dev"]
 
 [[package]]
 name = "audioop-lts"
