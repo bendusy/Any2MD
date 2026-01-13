@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.3.0 (2026-01-13)
+
+### Features
+
+- Default output on Desktop and merge into single markdown
+  ([`56f5039`](https://github.com/bendusy/Any2MD/commit/56f50395048b35b322133cac044ba37427e5be85))
+
+
 ## v1.2.2 (2026-01-13)
 
 ### Bug Fixes
