@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.1.2 (2026-01-13)
+
+### Bug Fixes
+
+- Release workflow only for version tags
+  ([`0e4c976`](https://github.com/bendusy/Any2MD/commit/0e4c976cb6fd1e6a8452cfc5328ae647a5cb79f8))
+
+
 ## v1.1.1 (2026-01-13)
 
 ### Bug Fixes
