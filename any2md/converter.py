@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import errno
 import shutil
 import subprocess
@@ -41,19 +42,30 @@ class Any2MDConverter:
         ".zip",
     }
 
+    _soffice_cache: Optional[str] = None
+    _powershell_cache: Optional[str] = None
+
     def __init__(self, enable_plugins: bool = False):
         self.md = MarkItDown(enable_plugins=enable_plugins)
 
     def _find_powershell(self) -> Optional[str]:
-        return shutil.which("pwsh") or shutil.which("powershell")
+        if Any2MDConverter._powershell_cache is not None:
+            return Any2MDConverter._powershell_cache or None
+        result = shutil.which("pwsh") or shutil.which("powershell")
+        Any2MDConverter._powershell_cache = result or ""
+        return result
 
     def _find_soffice(self) -> Optional[str]:
+        if Any2MDConverter._soffice_cache is not None:
+            return Any2MDConverter._soffice_cache or None
+
         for env_key in ("ANY2MD_SOFFICE", "SOFFICE_PATH"):
             env_val = os.environ.get(env_key)
             if env_val:
                 path = Path(env_val).expanduser()
                 if path.exists():
-                    return str(path)
+                    Any2MDConverter._soffice_cache = str(path)
+                    return Any2MDConverter._soffice_cache
 
         candidates = [shutil.which("soffice"), shutil.which("soffice.exe")]
         candidates.extend(
@@ -71,7 +83,9 @@ class Any2MDConverter:
                 continue
             path = Path(candidate)
             if path.exists():
-                return str(path)
+                Any2MDConverter._soffice_cache = str(path)
+                return Any2MDConverter._soffice_cache
+        Any2MDConverter._soffice_cache = ""
         return None
 
     def _convert_via_windows_com(self, input_path: Path, out_dir: Path) -> Path:
@@ -99,8 +113,8 @@ class Any2MDConverter:
 
         script = rf"""
 $ErrorActionPreference = "Stop"
-$in = "{str(input_path).replace('"','""')}"
-$out = "{str(output_path).replace('"','""')}"
+$in = "{str(input_path).replace('"', '""')}"
+$out = "{str(output_path).replace('"', '""')}"
 $format = {save_format}
 $progIds = @({prog_ids_ps})
 
@@ -195,29 +209,29 @@ throw "Office/WPS conversion failed"
         """macOS only: Convert .doc to .docx using textutil"""
         if shutil.which("textutil") is None:
             raise RuntimeError("textutil not found")
-        
+
         input_path = Path(input_path)
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
-        
+
         output_path = out_dir / f"{input_path.stem}.docx"
-        
+
         # textutil -convert docx input.doc -output output.docx
         cmd = [
             "textutil",
-            "-convert", "docx",
+            "-convert",
+            "docx",
             str(input_path),
-            "-output", str(output_path)
+            "-output",
+            str(output_path),
         ]
-        
+
         proc = subprocess.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0:
             stderr = (proc.stderr or "").strip()
             stdout = (proc.stdout or "").strip()
-            raise RuntimeError(
-                f"textutil conversion failed: {stderr or stdout}"
-            )
-            
+            raise RuntimeError(f"textutil conversion failed: {stderr or stdout}")
+
         if output_path.exists():
             return output_path
         raise RuntimeError("textutil output not found")
@@ -299,6 +313,24 @@ throw "Office/WPS conversion failed"
             lines.append("| " + " | ".join(row) + " |")
         return "\n".join(lines) + "\n"
 
+    def _write_markdown(
+        self, markdown_content: str, input_path: Path, output_dir: Optional[Path]
+    ) -> Optional[Path]:
+        if not output_dir:
+            return None
+        output_dir = self._prepare_output_dir(output_dir)
+        output_path = output_dir / f"{input_path.stem}.md"
+        try:
+            output_path.write_text(markdown_content, encoding="utf-8")
+        except OSError as e:
+            if e.errno in {errno.EROFS, errno.EACCES} and not output_dir.is_absolute():
+                output_dir = self._prepare_output_dir(Path.home() / output_dir)
+                output_path = output_dir / f"{input_path.stem}.md"
+                output_path.write_text(markdown_content, encoding="utf-8")
+            else:
+                raise
+        return output_path
+
     def convert_file(
         self, input_path: Path, output_dir: Optional[Path] = None
     ) -> ConvertResult:
@@ -334,7 +366,9 @@ throw "Office/WPS conversion failed"
                         elif sys.platform == "darwin" and legacy_suffix == ".doc":
                             # macOS fallback: try textutil
                             try:
-                                converted_path = self._convert_via_textutil(input_path, out_dir)
+                                converted_path = self._convert_via_textutil(
+                                    input_path, out_dir
+                                )
                             except Exception:
                                 converted_path = None
                         else:
@@ -350,7 +384,9 @@ throw "Office/WPS conversion failed"
                         if legacy_suffix != ".xls":
                             msg = "未检测到可用的旧格式转换器："
                             if sys.platform == "win32":
-                                msg += "Windows 请安装 Microsoft Office/WPS 或 LibreOffice"
+                                msg += (
+                                    "Windows 请安装 Microsoft Office/WPS 或 LibreOffice"
+                                )
                             elif sys.platform == "darwin":
                                 msg += "macOS 请安装 LibreOffice"
                                 if legacy_suffix == ".doc":
@@ -361,26 +397,9 @@ throw "Office/WPS conversion failed"
                         markdown_content = self._convert_xls_with_xlrd(input_path)
                         title = input_path.stem
 
-                    output_path = None
-                    if output_dir:
-                        output_dir = self._prepare_output_dir(output_dir)
-                        output_path = output_dir / f"{input_path.stem}.md"
-                        try:
-                            output_path.write_text(markdown_content, encoding="utf-8")
-                        except OSError as e:
-                            if (
-                                e.errno in {errno.EROFS, errno.EACCES}
-                                and not output_dir.is_absolute()
-                            ):
-                                output_dir = self._prepare_output_dir(
-                                    Path.home() / output_dir
-                                )
-                                output_path = output_dir / f"{input_path.stem}.md"
-                                output_path.write_text(
-                                    markdown_content, encoding="utf-8"
-                                )
-                            else:
-                                raise
+                    output_path = self._write_markdown(
+                        markdown_content, input_path, output_dir
+                    )
                     return ConvertResult(
                         success=True,
                         input_path=input_path,
@@ -393,22 +412,7 @@ throw "Office/WPS conversion failed"
             markdown_content = result.text_content or ""
             title = getattr(result, "title", None)
 
-            output_path = None
-            if output_dir:
-                output_dir = self._prepare_output_dir(output_dir)
-                output_path = output_dir / f"{input_path.stem}.md"
-                try:
-                    output_path.write_text(markdown_content, encoding="utf-8")
-                except OSError as e:
-                    if (
-                        e.errno in {errno.EROFS, errno.EACCES}
-                        and not output_dir.is_absolute()
-                    ):
-                        output_dir = self._prepare_output_dir(Path.home() / output_dir)
-                        output_path = output_dir / f"{input_path.stem}.md"
-                        output_path.write_text(markdown_content, encoding="utf-8")
-                    else:
-                        raise
+            output_path = self._write_markdown(markdown_content, input_path, output_dir)
 
             return ConvertResult(
                 success=True,
@@ -421,23 +425,39 @@ throw "Office/WPS conversion failed"
             return ConvertResult(success=False, input_path=input_path, error=str(e))
 
     def convert_directory(
-        self, input_dir: Path, output_dir: Path, recursive: bool = True
+        self,
+        input_dir: Path,
+        output_dir: Path,
+        recursive: bool = True,
+        max_workers: int = 4,
     ) -> list[ConvertResult]:
         input_dir = Path(input_dir)
         output_dir = Path(output_dir)
-        results = []
 
         pattern = "**/*" if recursive else "*"
-        for file_path in input_dir.glob(pattern):
-            if file_path.is_file() and self.can_convert(file_path):
-                rel_path = file_path.relative_to(input_dir)
-                file_output_dir = output_dir / rel_path.parent
-                result = self.convert_file(file_path, file_output_dir)
-                results.append(result)
+        files_to_convert = [
+            (file_path, output_dir / file_path.relative_to(input_dir).parent)
+            for file_path in input_dir.glob(pattern)
+            if file_path.is_file() and self.can_convert(file_path)
+        ]
+
+        if not files_to_convert:
+            return []
+
+        results: list[ConvertResult] = []
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(self.convert_file, fp, od): fp
+                for fp, od in files_to_convert
+            }
+            for future in as_completed(futures):
+                results.append(future.result())
 
         return results
 
-    def merge_markdown(self, results: list[ConvertResult], base_dir: Optional[Path]) -> str:
+    def merge_markdown(
+        self, results: list[ConvertResult], base_dir: Optional[Path]
+    ) -> str:
         base_dir_path = Path(base_dir) if base_dir else None
 
         parts: list[str] = []

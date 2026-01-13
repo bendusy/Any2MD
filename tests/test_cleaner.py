@@ -7,17 +7,17 @@ class TestFilenameCleaner:
     def test_default_config(self):
         cleaner = FilenameCleaner()
 
-        assert cleaner.config["remove_special_chars"] is True
-        assert cleaner.config["replace_spaces_with"] == "_"
-        assert cleaner.config["lowercase"] is False
-        assert cleaner.config["max_length"] == 200
+        assert cleaner._remove_special_chars is True
+        assert cleaner._replace_spaces_with == "_"
+        assert cleaner._lowercase is False
+        assert cleaner._max_length == 200
 
     def test_custom_config(self):
         config = {"lowercase": True, "max_length": 50}
         cleaner = FilenameCleaner(config)
 
-        assert cleaner.config["lowercase"] is True
-        assert cleaner.config["max_length"] == 50
+        assert cleaner._lowercase is True
+        assert cleaner._max_length == 50
 
     def test_clean_illegal_chars(self):
         cleaner = FilenameCleaner()

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.progress import Progress, BarColumn, TextColumn, TaskProgressColumn
 
 from .converter import Any2MDConverter
 from .unzipper import Unzipper
@@ -33,21 +33,49 @@ def convert(
     converter = Any2MDConverter()
 
     with Progress(
-        SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
         console=console,
     ) as progress:
         if input_path.suffix.lower() == ".zip":
-            progress.add_task("解压 ZIP 文件...", total=None)
+            task = progress.add_task("解压 ZIP 文件...", total=1)
             with Unzipper() as unzipper:
                 extracted = unzipper.extract_recursive(input_path)
-                results = converter.convert_directory(extracted, output, recursive)
+                progress.update(task, completed=1)
+
+                files = [
+                    f
+                    for f in extracted.rglob("*")
+                    if f.is_file() and converter.can_convert(f)
+                ]
+                convert_task = progress.add_task("转换文件...", total=len(files))
+                results = []
+                for file_path in files:
+                    rel_path = file_path.relative_to(extracted)
+                    file_output_dir = output / rel_path.parent
+                    result = converter.convert_file(file_path, file_output_dir)
+                    results.append(result)
+                    progress.update(convert_task, advance=1)
         elif input_path.is_dir():
-            progress.add_task("转换文件夹...", total=None)
-            results = converter.convert_directory(input_path, output, recursive)
+            pattern = "**/*" if recursive else "*"
+            files = [
+                f
+                for f in input_path.glob(pattern)
+                if f.is_file() and converter.can_convert(f)
+            ]
+            task = progress.add_task("转换文件...", total=len(files))
+            results = []
+            for file_path in files:
+                rel_path = file_path.relative_to(input_path)
+                file_output_dir = output / rel_path.parent
+                result = converter.convert_file(file_path, file_output_dir)
+                results.append(result)
+                progress.update(task, advance=1)
         else:
-            progress.add_task("转换文件...", total=None)
+            task = progress.add_task("转换文件...", total=1)
             results = [converter.convert_file(input_path, output)]
+            progress.update(task, completed=1)
 
     success_count = sum(1 for r in results if r.success)
     fail_count = len(results) - success_count

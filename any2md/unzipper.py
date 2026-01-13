@@ -40,7 +40,9 @@ class Unzipper:
     def is_zip(self, file_path: Path) -> bool:
         return file_path.suffix.lower() == ".zip" and zipfile.is_zipfile(file_path)
 
-    def extract(self, zip_path: Path, output_dir: Optional[Path] = None) -> Path:
+    def _extract_internal(
+        self, zip_path: Path, output_dir: Optional[Path] = None
+    ) -> tuple[Path, list[Path]]:
         zip_path = Path(zip_path)
 
         if output_dir is None:
@@ -50,6 +52,8 @@ class Unzipper:
         else:
             output_dir = Path(output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
+
+        nested_zips: list[Path] = []
 
         with zipfile.ZipFile(zip_path, "r") as zf:
             for info in zf.infolist():
@@ -64,14 +68,21 @@ class Unzipper:
                 with zf.open(info, "r") as src, dest_path.open("wb") as dst:
                     shutil.copyfileobj(src, dst)
 
+                if dest_path.suffix.lower() == ".zip":
+                    nested_zips.append(dest_path)
+
+        return output_dir, nested_zips
+
+    def extract(self, zip_path: Path, output_dir: Optional[Path] = None) -> Path:
+        output_dir, _ = self._extract_internal(zip_path, output_dir)
         return output_dir
 
     def extract_recursive(
         self, zip_path: Path, output_dir: Optional[Path] = None
     ) -> Path:
-        extracted_dir = self.extract(zip_path, output_dir)
+        extracted_dir, nested_zips = self._extract_internal(zip_path, output_dir)
 
-        for nested_zip in extracted_dir.rglob("*.zip"):
+        for nested_zip in nested_zips:
             if zipfile.is_zipfile(nested_zip):
                 nested_output = nested_zip.parent / nested_zip.stem
                 self.extract_recursive(nested_zip, nested_output)

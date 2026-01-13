@@ -9,16 +9,13 @@ class FilenameCleaner:
     MULTIPLE_UNDERSCORES_PATTERN = re.compile(r"_+")
 
     def __init__(self, config: Optional[dict] = None):
-        self.config = config or {
-            "remove_special_chars": True,
-            "replace_spaces_with": "_",
-            "lowercase": False,
-            "max_length": 200,
-        }
+        config = config or {}
+        self._remove_special_chars = config.get("remove_special_chars", True)
+        self._replace_spaces_with = config.get("replace_spaces_with", "_")
+        self._lowercase = config.get("lowercase", False)
+        self._max_length = config.get("max_length", 200)
 
     def clean(self, filename: str) -> str:
-        # Split extension manually to avoid Path interpreting slashes as separators
-        # when we want to treat them as illegal characters.
         name, dot, ext = filename.rpartition(".")
         if not dot:
             name = filename
@@ -26,24 +23,22 @@ class FilenameCleaner:
         else:
             ext = dot + ext
 
-        if self.config.get("remove_special_chars", True):
+        if self._remove_special_chars:
             name = self.ILLEGAL_CHARS_PATTERN.sub("", name)
 
         name = self.MULTIPLE_SPACES_PATTERN.sub(" ", name).strip()
 
-        replace_char = self.config.get("replace_spaces_with", "_")
-        if replace_char:
-            name = name.replace(" ", replace_char)
-            if replace_char == "_":
+        if self._replace_spaces_with:
+            name = name.replace(" ", self._replace_spaces_with)
+            if self._replace_spaces_with == "_":
                 name = self.MULTIPLE_UNDERSCORES_PATTERN.sub("_", name)
 
-        if self.config.get("lowercase", False):
+        if self._lowercase:
             name = name.lower()
             ext = ext.lower()
 
-        max_length = self.config.get("max_length", 200)
-        if len(name) > max_length:
-            name = name[:max_length]
+        if len(name) > self._max_length:
+            name = name[: self._max_length]
 
         return f"{name}{ext}"
 
