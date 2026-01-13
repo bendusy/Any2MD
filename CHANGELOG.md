@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.5.3 (2026-01-13)
+
+### Bug Fixes
+
+- 同时清理 Frameworks 和 Resources 下的 translations 符号链接
+  ([`86de91b`](https://github.com/bendusy/Any2MD/commit/86de91ba5523bf35093a8ec550eb20170ea7302c))
+
+
 ## v1.5.2 (2026-01-13)
 
 ### Bug Fixes
