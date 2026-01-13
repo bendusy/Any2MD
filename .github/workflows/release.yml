@@ -10,58 +10,13 @@ on:
         description: "Tag to build/release (e.g. v1.2.3)"
         required: true
         type: string
-  workflow_run:
-    workflows: ["Semantic Release"]
-    types:
-      - completed
 
 permissions:
   contents: write
 
 jobs:
-  resolve:
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.resolve.outputs.tag }}
-      ref: ${{ steps.resolve.outputs.ref }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.ref }}
-
-      - id: resolve
-        shell: bash
-        run: |
-          set -euo pipefail
-          git fetch --tags --force
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            tag="${{ inputs.tag }}"
-            ref="$tag"
-          elif [ "${{ github.event_name }}" = "push" ]; then
-            tag="${{ github.ref_name }}"
-            ref="$tag"
-          else
-            api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest"
-            tag="$(curl -fsSL \
-              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-              -H "Accept: application/vnd.github+json" \
-              "$api" | python -c "import json,sys; print(json.load(sys.stdin).get('tag_name',''))")"
-            if [[ "$tag" =~ ^v[0-9] ]]; then
-              ref="$tag"
-            else
-              tag=""
-              ref=""
-            fi
-          fi
-
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "ref=$ref" >> "$GITHUB_OUTPUT"
-
   build:
-    needs: resolve
-    if: needs.resolve.outputs.tag != ''
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -88,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.resolve.outputs.ref }}
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -210,9 +165,9 @@ jobs:
           path: dist/${{ matrix.asset_name }}
 
   release:
-    needs: [resolve, build]
+    needs: build
     runs-on: ubuntu-latest
-    if: needs.resolve.outputs.tag != ''
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Download all artifacts
@@ -226,12 +181,12 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ needs.resolve.outputs.tag }}
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
             artifacts/**/*
           draft: false
           prerelease: false
-          generate_release_notes: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

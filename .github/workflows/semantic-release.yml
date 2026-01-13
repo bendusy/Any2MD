@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   release:
@@ -18,7 +19,40 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Record previous tag
+        id: prev
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          prev_tag="$(git tag -l 'v*' --sort=-v:refname | head -n1 || true)"
+          echo "tag=$prev_tag" >> "$GITHUB_OUTPUT"
+
       - name: Python Semantic Release
+        id: semrel
         uses: python-semantic-release/python-semantic-release@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Build & Release
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          new_tag="$(git tag -l 'v*' --sort=-v:refname | head -n1 || true)"
+          prev_tag="${{ steps.prev.outputs.tag }}"
+
+          if [ -z "$new_tag" ]; then
+            echo "No semver tag found; skipping build."
+            exit 0
+          fi
+
+          if [ "$new_tag" = "$prev_tag" ]; then
+            echo "No new tag created ($new_tag); skipping build."
+            exit 0
+          fi
+
+          gh workflow run "Build & Release" -f tag="$new_tag"
