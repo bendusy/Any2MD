@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.1.0 (2026-01-13)
+
+### Features
+
+- 支持 doc/ppt/xls 旧格式(需LibreOffice)
+  ([`dcac869`](https://github.com/bendusy/Any2MD/commit/dcac869b78326c11e5c44792f9220b145bdea1f9))
+
+
 ## v1.0.5 (2026-01-13)
 
 ### Bug Fixes
