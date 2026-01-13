@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.5.4 (2026-01-13)
+
+### Bug Fixes
+
+- 移除未使用的 QMutex 导入
+  ([`d5b875e`](https://github.com/bendusy/Any2MD/commit/d5b875e9f3c4276d473ed8cb90f691427183281e))
+
+### Refactoring
+
+- 优化 prune_qt.py 路径查找逻辑和日志输出
+  ([`1d370af`](https://github.com/bendusy/Any2MD/commit/1d370af77f64ad4c601a184c711634a7f2853048))
+
+- 全面优化代码质量和性能
+  ([`ac7bc57`](https://github.com/bendusy/Any2MD/commit/ac7bc57c01fa0dd7541873de241ea5af39220b42))
+
+
 ## v1.5.3 (2026-01-13)
 
 ### Bug Fixes
