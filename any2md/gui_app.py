@@ -143,7 +143,7 @@ class DropArea(QFrame):
             self,
             "选择文件",
             "",
-            "所有支持的文件 (*.pdf *.docx *.pptx *.xlsx *.html *.zip);;所有文件 (*)",
+            "所有支持的文件 (*.pdf *.doc *.docx *.ppt *.pptx *.xls *.xlsx *.html *.htm *.txt *.rtf *.zip);;所有文件 (*)",
         )
         if path:
             self.pathDropped.emit(path)
@@ -173,9 +173,12 @@ class MainWindow(QMainWindow):
         self.input_edit = QLineEdit()
         self.input_edit.setPlaceholderText("文件/文件夹/ZIP 路径")
         input_layout.addWidget(self.input_edit)
-        self.browse_input_btn = QPushButton("浏览")
-        self.browse_input_btn.clicked.connect(self.browse_input)
-        input_layout.addWidget(self.browse_input_btn)
+        self.browse_input_file_btn = QPushButton("选文件")
+        self.browse_input_file_btn.clicked.connect(self.browse_input_file)
+        input_layout.addWidget(self.browse_input_file_btn)
+        self.browse_input_dir_btn = QPushButton("选文件夹")
+        self.browse_input_dir_btn.clicked.connect(self.browse_input_dir)
+        input_layout.addWidget(self.browse_input_dir_btn)
         layout.addLayout(input_layout)
 
         output_layout = QHBoxLayout()
@@ -236,6 +239,16 @@ class MainWindow(QMainWindow):
         self.log_text.setMaximumHeight(150)
         layout.addWidget(self.log_text)
 
+    def _input_file_filter(self) -> str:
+        return (
+            "所有支持的文件 (*.pdf *.doc *.docx *.ppt *.pptx *.xls *.xlsx *.html *.htm *.txt *.rtf *.zip);;"
+            "Office 文档 (*.doc *.docx *.ppt *.pptx *.xls *.xlsx);;"
+            "PDF (*.pdf);;"
+            "网页 (*.html *.htm);;"
+            "压缩包 (*.zip);;"
+            "所有文件 (*)"
+        )
+
     def _default_output_dir(self) -> Path:
         desktop = QStandardPaths.writableLocation(
             QStandardPaths.StandardLocation.DesktopLocation
@@ -259,7 +272,12 @@ class MainWindow(QMainWindow):
         self.input_edit.setText(path)
         self.drop_area.label.setText(f"已选择: {Path(path).name}")
 
-    def browse_input(self):
+    def browse_input_file(self):
+        path, _ = QFileDialog.getOpenFileName(self, "选择文件", "", self._input_file_filter())
+        if path:
+            self.input_edit.setText(path)
+
+    def browse_input_dir(self):
         path = QFileDialog.getExistingDirectory(self, "选择文件夹")
         if path:
             self.input_edit.setText(path)
