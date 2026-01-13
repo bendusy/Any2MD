@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.1.1 (2026-01-13)
+
+### Bug Fixes
+
+- Make Qt pruning path robust
+  ([`47624c8`](https://github.com/bendusy/Any2MD/commit/47624c8de61187f72e8012df2bdaf051d35bcd5e))
+
+
 ## v1.1.0 (2026-01-13)
 
 ### Features
