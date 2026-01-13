@@ -32,6 +32,8 @@ Any2MD 是一个基于 [Microsoft MarkItDown](https://github.com/microsoft/marki
 
 如果 Any2MD 提示“未检测到 LibreOffice（soffice）”，请安装 LibreOffice 并确保 `soffice` 可用；也可以设置环境变量 `ANY2MD_SOFFICE` 指向 `soffice` 可执行文件路径。
 
+Windows 额外支持：如果安装了 Microsoft Office 或 WPS（并注册了 COM 组件），Any2MD 会尝试通过 PowerShell 调用它们来转换 `.doc/.ppt/.xls`。
+
 ## 快速开始
 
 ### 安装

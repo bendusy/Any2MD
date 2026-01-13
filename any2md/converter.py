@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import os
+import sys
 
 from markitdown import MarkItDown
 
@@ -43,6 +44,9 @@ class Any2MDConverter:
     def __init__(self, enable_plugins: bool = False):
         self.md = MarkItDown(enable_plugins=enable_plugins)
 
+    def _find_powershell(self) -> Optional[str]:
+        return shutil.which("pwsh") or shutil.which("powershell")
+
     def _find_soffice(self) -> Optional[str]:
         for env_key in ("ANY2MD_SOFFICE", "SOFFICE_PATH"):
             env_val = os.environ.get(env_key)
@@ -69,6 +73,108 @@ class Any2MDConverter:
             if path.exists():
                 return str(path)
         return None
+
+    def _convert_via_windows_com(self, input_path: Path, out_dir: Path) -> Path:
+        input_path = Path(input_path)
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        powershell = self._find_powershell()
+        if powershell is None:
+            raise RuntimeError("未检测到 PowerShell，无法调用 Office/WPS 转换")
+
+        suffix = input_path.suffix.lower()
+        mapping = {
+            ".doc": ("docx", 16, ["Word.Application", "kwps.Application"]),
+            ".ppt": ("pptx", 24, ["PowerPoint.Application", "kwpp.Application"]),
+            ".xls": ("xlsx", 51, ["Excel.Application", "ket.Application"]),
+        }
+        if suffix not in mapping:
+            raise ValueError(f"Unsupported legacy suffix: {suffix}")
+
+        target_ext, save_format, prog_ids = mapping[suffix]
+        output_path = out_dir / f"{input_path.stem}.{target_ext}"
+
+        prog_ids_ps = ",".join([f"'{p}'" for p in prog_ids])
+
+        script = rf"""
+$ErrorActionPreference = "Stop"
+$in = "{str(input_path).replace('"','""')}"
+$out = "{str(output_path).replace('"','""')}"
+$format = {save_format}
+$progIds = @({prog_ids_ps})
+
+function TryConvertWord($app, $in, $out, $format) {{
+  $app.Visible = $false
+  try {{ $app.DisplayAlerts = 0 }} catch {{}}
+  $doc = $app.Documents.Open($in, $false, $true)
+  try {{
+    try {{ $doc.SaveAs2($out, $format) }} catch {{ $doc.SaveAs($out, $format) }}
+  }} finally {{
+    $doc.Close($false) | Out-Null
+  }}
+}}
+
+function TryConvertExcel($app, $in, $out, $format) {{
+  $app.Visible = $false
+  try {{ $app.DisplayAlerts = 0 }} catch {{}}
+  $wb = $app.Workbooks.Open($in, $null, $true)
+  try {{
+    $wb.SaveAs($out, $format) | Out-Null
+  }} finally {{
+    $wb.Close($false) | Out-Null
+  }}
+}}
+
+function TryConvertPowerPoint($app, $in, $out, $format) {{
+  $app.Visible = $false
+  try {{ $app.DisplayAlerts = 0 }} catch {{}}
+  $pres = $app.Presentations.Open($in, $true, $true, $false)
+  try {{
+    $pres.SaveAs($out, $format) | Out-Null
+  }} finally {{
+    $pres.Close() | Out-Null
+  }}
+}}
+
+$lastErr = $null
+foreach ($pid in $progIds) {{
+  try {{
+    $app = New-Object -ComObject $pid
+    try {{
+      if ($format -eq 16) {{ TryConvertWord $app $in $out $format }}
+      elseif ($format -eq 51) {{ TryConvertExcel $app $in $out $format }}
+      else {{ TryConvertPowerPoint $app $in $out $format }}
+    }} finally {{
+      try {{ $app.Quit() | Out-Null }} catch {{}}
+    }}
+    if (Test-Path -LiteralPath $out) {{ exit 0 }}
+    throw "Converted output not found: $out"
+  }} catch {{
+    $lastErr = $_
+  }}
+}}
+
+if ($lastErr) {{ throw $lastErr }}
+throw "Office/WPS conversion failed"
+"""
+
+        proc = subprocess.run(
+            [powershell, "-NoProfile", "-NonInteractive", "-Command", script],
+            capture_output=True,
+            text=True,
+        )
+        if proc.returncode != 0:
+            stderr = (proc.stderr or "").strip()
+            stdout = (proc.stdout or "").strip()
+            raise RuntimeError(
+                "Office/WPS 转换失败"
+                + (f": {stderr}" if stderr else f": {stdout}" if stdout else "")
+            )
+
+        if not output_path.exists():
+            raise RuntimeError("Office/WPS 转换未生成输出文件")
+        return output_path
 
     def _prepare_output_dir(self, output_dir: Path) -> Path:
         output_dir = Path(output_dir)
@@ -186,12 +292,30 @@ class Any2MDConverter:
                     out_dir = Path(td)
                     try:
                         converted_path = self._convert_via_soffice(input_path, out_dir)
+                    except Exception:
+                        if sys.platform == "win32":
+                            try:
+                                converted_path = self._convert_via_windows_com(
+                                    input_path, out_dir
+                                )
+                            except Exception:
+                                converted_path = None
+                        else:
+                            converted_path = None
+
+                    try:
+                        if converted_path is None:
+                            raise RuntimeError("No legacy converter available")
                         result = self.md.convert(str(converted_path))
                         markdown_content = result.text_content or ""
                         title = getattr(result, "title", None)
                     except Exception:
                         if legacy_suffix != ".xls":
-                            raise
+                            raise RuntimeError(
+                                "未检测到可用的旧格式转换器："
+                                "Windows 请安装 Microsoft Office/WPS 或 LibreOffice；"
+                                "macOS/Linux 请安装 LibreOffice"
+                            )
                         markdown_content = self._convert_xls_with_xlrd(input_path)
                         title = input_path.stem
                     output_path = None
