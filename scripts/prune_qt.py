@@ -6,12 +6,12 @@ from pathlib import Path
 
 
 def _remove_if_exists(path: Path) -> None:
-    if not path.exists():
+    if not path.exists() and not path.is_symlink():
         return
-    if path.is_dir():
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.is_dir():
         shutil.rmtree(path, ignore_errors=True)
-    else:
-        path.unlink(missing_ok=True)
 
 
 def prune_qt(qt_root: Path) -> None:
