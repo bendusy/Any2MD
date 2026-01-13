@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.0 (2026-01-13)
+
+### Features
+
+- Windows fallback via Office/WPS for legacy formats
+  ([`1992f82`](https://github.com/bendusy/Any2MD/commit/1992f82ab7a9c8c01a3c870b12237e82b8a6be77))
+
+
 ## v1.1.4 (2026-01-13)
 
 ### Bug Fixes
