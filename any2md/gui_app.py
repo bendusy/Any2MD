@@ -13,15 +13,12 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QFileDialog,
-    QTextEdit,
     QProgressBar,
     QMessageBox,
     QFrame,
     QCheckBox,
     QGraphicsDropShadowEffect,
-    QSizePolicy,
     QStackedWidget,
-    QScrollArea,
     QListWidget,
     QListWidgetItem,
     QMenu,
@@ -30,11 +27,10 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem,
     QHeaderView,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QStandardPaths, QUrl, QSize, QPropertyAnimation, QEasingCurve, QTimer, QPoint, QMutex
-from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QColor, QFont, QIcon, QDesktopServices, QPainter, QLinearGradient, QBrush, QAction, QCursor, QClipboard
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl, QPoint, QMutex
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QColor, QDesktopServices, QBrush, QAction
 
 from .converter import Any2MDConverter, ConvertResult
-from .unzipper import Unzipper
 
 
 # --- 2025 Design System: "Morning Light" ---
@@ -281,7 +277,8 @@ class FileItemData:
         if self.relative_to:
             try:
                 rel = self.path.parent.relative_to(self.relative_to)
-                if str(rel) == ".": return ""
+                if str(rel) == ".":
+                    return ""
                 return str(rel)
             except ValueError:
                 pass
@@ -310,7 +307,8 @@ class PreScanner(QThread):
         def scan_dir(d: Path, root: Path):
             try:
                 for entry in os.scandir(d):
-                    if self._stop: return
+                    if self._stop:
+                        return
                     p = Path(entry.path)
                     if entry.is_dir() and not entry.name.startswith('.'):
                         scan_dir(p, root)
@@ -321,7 +319,8 @@ class PreScanner(QThread):
                 pass
 
         for path in self.raw_paths:
-            if self._stop: break
+            if self._stop:
+                break
             if path.is_file():
                 found.append(FileItemData(path, relative_to=path.parent))
             elif path.is_dir():
@@ -365,13 +364,14 @@ class ConvertWorker(QThread):
                 # OR we try to determine common path.
                 try:
                     common_path = Path(os.path.commonpath([str(i.path.parent) for i in self.items]))
-                except:
+                except Exception:
                     common_path = None
             else:
                 common_path = None
 
             for i, item in enumerate(self.items):
-                if self._stop: break
+                if self._stop:
+                    break
                 
                 self.progress_global.emit(i + 1, total)
                 self.file_started.emit(str(item.path))
@@ -409,7 +409,8 @@ class ConvertWorker(QThread):
             if self.merge and results and not self._stop:
                 try:
                     name = (self.merge_name or "").strip() or "Any2MD-Merged.md"
-                    if not name.lower().endswith(".md"): name += ".md"
+                    if not name.lower().endswith(".md"):
+                        name += ".md"
                     converter.write_merged_markdown(results, self.output_path / name, common_path)
                 except Exception as e:
                     print(f"Merge failed: {e}")
@@ -685,7 +686,7 @@ class ZenWindow(QMainWindow):
         
         self.file_list_widget = QListWidget()
         self.file_list_widget.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
-        self.file_list_widget.setStyleSheet(f"""
+        self.file_list_widget.setStyleSheet("""
             QListWidget {{
                 font-size: 13px;
             }}
@@ -878,11 +879,16 @@ class ZenWindow(QMainWindow):
             
         icon = "📄" # Distinction based on suffix?
         suffix = item.path.suffix.lower()
-        if suffix in ['.pdf']: icon = "📕"
-        elif suffix in ['.doc', '.docx']: icon = "📘"
-        elif suffix in ['.ppt', '.pptx']: icon = "📙"
-        elif suffix in ['.xls', '.xlsx']: icon = "📗"
-        elif suffix == '.zip': icon = "📦"
+        if suffix in ['.pdf']:
+            icon = "📕"
+        elif suffix in ['.doc', '.docx']:
+            icon = "📘"
+        elif suffix in ['.ppt', '.pptx']:
+            icon = "📙"
+        elif suffix in ['.xls', '.xlsx']:
+            icon = "📗"
+        elif suffix == '.zip':
+            icon = "📦"
         
         list_item = QListWidgetItem(f"{icon}  {text}")
         list_item.setData(Qt.ItemDataRole.UserRole, str(item.path))
