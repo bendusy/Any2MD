@@ -1,6 +1,6 @@
 [project]
 name = "any2md"
-version = "1.5.0"
+version = "1.5.1"
 description = "批量转换各种文档格式为 Markdown"
 authors = [{ name = "dustbinchen" }]
 readme = "README.md"

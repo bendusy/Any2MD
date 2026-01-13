@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.5.1 (2026-01-13)
+
+### Bug Fixes
+
+- 修复 prune_qt.py 脚本在构建时未正确处理软链接的问题
+  ([`ee593f7`](https://github.com/bendusy/Any2MD/commit/ee593f7d5348e60174746313103a52dad10b54d8))
+
+### Code Style
+
+- 修复 Ruff 代码质量问题 (imports, formatting)
+  ([`900cdd8`](https://github.com/bendusy/Any2MD/commit/900cdd8aeabb80f9684910c90ca1ed0931699b90))
+
+
 ## v1.5.0 (2026-01-13)
 
 ### Features
