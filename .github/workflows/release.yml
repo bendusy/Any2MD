@@ -10,12 +10,49 @@ on:
         description: "Tag to build/release (e.g. v1.2.3)"
         required: true
         type: string
+  workflow_run:
+    workflows: ["Semantic Release"]
+    types:
+      - completed
 
 permissions:
   contents: write
 
 jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      ref: ${{ steps.resolve.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.ref }}
+
+      - id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            tag="${{ inputs.tag }}"
+            ref="$tag"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            tag="${{ github.ref_name }}"
+            ref="$tag"
+          else
+            tag="$(git tag --points-at HEAD | grep -E '^v[0-9]' | head -n1 || true)"
+            ref="${{ github.event.workflow_run.head_sha }}"
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: resolve
+    if: needs.resolve.outputs.tag != ''
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -42,7 +79,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ needs.resolve.outputs.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -164,9 +201,9 @@ jobs:
           path: dist/${{ matrix.asset_name }}
 
   release:
-    needs: build
+    needs: [resolve, build]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    if: needs.resolve.outputs.tag != ''
 
     steps:
       - name: Download all artifacts
@@ -180,7 +217,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ inputs.tag || github.ref_name }}
+          tag_name: ${{ needs.resolve.outputs.tag }}
           files: |
             artifacts/**/*
           draft: false
